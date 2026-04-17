@@ -1,4 +1,4 @@
-package com.java.product.service;
+package com.java.inventory.service;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
@@ -6,10 +6,10 @@ import org.springframework.cloud.openfeign.EnableFeignClients;
 
 @SpringBootApplication
 @EnableFeignClients
-public class ProductServiceApplication {
+public class InventoryServiceApplication {
 
     static void main(String[] args) {
-        SpringApplication.run(ProductServiceApplication.class, args);
+        SpringApplication.run(InventoryServiceApplication.class, args);
     }
 
 }

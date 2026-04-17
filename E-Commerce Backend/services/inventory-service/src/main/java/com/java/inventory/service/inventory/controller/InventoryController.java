@@ -1,0 +1,58 @@
+package com.java.inventory.service.inventory.controller;
+
+import com.java.inventory.service.inventory.dto.CreateInventoryRequest;
+import com.java.inventory.service.inventory.dto.CreateInventoryResponse;
+import com.java.inventory.service.inventory.service.InventoryService;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotNull;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.UUID;
+
+@RestController
+@RequestMapping("/api/v1/inventory")
+@RequiredArgsConstructor
+@Validated
+public class InventoryController {
+
+    private final InventoryService inventoryService;
+
+    @PostMapping("/create")
+    ResponseEntity<CreateInventoryResponse> createInventory(@RequestBody final @Valid CreateInventoryRequest request) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(inventoryService.createNewInventory(request));
+    }
+
+    @GetMapping("/{id}/check")
+    public ResponseEntity<Boolean> isStockAvailable(
+            @PathVariable final @NotNull UUID id,
+            @RequestParam @Min(1) Integer quantity
+    ) {
+        return ResponseEntity.ok(
+                inventoryService.isStockAvailable(id, quantity)
+        );
+    }
+
+    @PostMapping("/{id}/reserve")
+    public ResponseEntity<Void> reserveStock(
+            @PathVariable final @NotNull UUID id,
+            @RequestParam @Min(1) Integer quantity
+    ) {
+        inventoryService.reserveStock(id, quantity);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+
+    @PostMapping("/{id}/release")
+    public ResponseEntity<Void> releaseStock(
+            @PathVariable final @NotNull UUID id,
+            @RequestParam @Min(1) Integer quantity
+    ) {
+        inventoryService.releaseStock(id, quantity);
+        return ResponseEntity.status(HttpStatus.OK).build();
+    }
+}

@@ -73,4 +73,27 @@ public class ProductController {
         return ResponseEntity.status(HttpStatus.OK)
                 .body(productService.fetchProductsInPage(page, size, keyword, sortBy, sortDirection));
     }
+
+    @GetMapping("/{id}/exists")
+    public ResponseEntity<Boolean> productExists(@PathVariable final @NotNull UUID id) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(productService.checkForProductExistence(id));
+    }
+
+    @PostMapping("/add-to-cart")
+    public ResponseEntity<ProductToCartResponse> addToCart(@RequestBody final @Valid ProductToCartRequest request) {
+        UUID userId = UUID.fromString("95d6810a-1ca5-4e75-9b9d-a792c8d07395");
+
+        System.out.println(userId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(productService.addProductToCart(request, userId));
+    }
+
+    @PostMapping("/add-to-wishlist")
+    public ResponseEntity<ProductToWishlistResponse> addToWishlist(@RequestBody final @Valid ProductToWishlistRequest request) {
+        UUID userId = UUID.fromString("3a6bea85-1f4e-4a77-b3d6-13ab65f06589");
+        System.out.println(userId);
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(productService.addProductToWishlist(request, userId));
+    }
 }

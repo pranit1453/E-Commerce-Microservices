@@ -1,16 +1,25 @@
 package com.java.product.service.product.service;
 
+import com.java.product.service.cart.entity.Cart;
+import com.java.product.service.cart.entity.CartItem;
+import com.java.product.service.cart.service.CartService;
 import com.java.product.service.category.entity.Category;
 import com.java.product.service.category.repository.CategoryRepository;
 import com.java.product.service.exception.custom.DuplicateResourceFoundException;
+import com.java.product.service.exception.custom.InsufficientStockException;
 import com.java.product.service.exception.custom.ResourceNotFoundException;
+import com.java.product.service.product.client.InventoryClient;
 import com.java.product.service.product.dto.*;
 import com.java.product.service.product.entity.Product;
 import com.java.product.service.product.enums.ProductSortField;
 import com.java.product.service.product.mapper.ProductMapper;
 import com.java.product.service.product.repository.ProductRepository;
 import com.java.product.service.product.specification.ProductSpecification;
+import com.java.product.service.wishlist.entity.Wishlist;
+import com.java.product.service.wishlist.entity.WishlistItem;
+import com.java.product.service.wishlist.service.WishlistService;
 import com.java.product.service.wrapper.PageResponse;
+import feign.FeignException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
@@ -21,6 +30,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.math.BigDecimal;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +42,9 @@ public class ProductServiceImpl implements ProductService {
     private final ProductRepository productRepository;
     private final ProductMapper productMapper;
     private final CategoryRepository categoryRepository;
+    private final InventoryClient inventoryClient;
+    private final CartService cartService;
+    private final WishlistService wishlistService;
 
     @Override
     @Transactional
@@ -159,6 +172,63 @@ public class ProductServiceImpl implements ProductService {
                 .totalElements(pages.getTotalElements())
                 .totalPages(pages.getTotalPages())
                 .last(pages.isLast())
+                .build();
+    }
+
+    @Override
+    public Boolean checkForProductExistence(final UUID id) {
+        return productRepository.existsById(id);
+    }
+
+    @Override
+    @Transactional
+    public ProductToCartResponse addProductToCart(final ProductToCartRequest request,
+                                                  final UUID userId) {
+        if (!Boolean.TRUE.equals(inventoryClient.isStockAvailable(request.productId(), request.quantity()))) {
+            throw new InsufficientStockException("Stock is not available");
+        }
+
+        try {
+            inventoryClient.reserveStock(request.productId(), request.quantity());
+        } catch (FeignException.BadRequest ex) {
+            throw new InsufficientStockException("Stock just went out. Try again.");
+        }
+
+        Product product = findByProductId(request.productId());
+        Cart cart = cartService.getOrCreateCart(userId);
+
+        try {
+            CartItem cartItem = cartService.addOrUpdateCartItem(
+                    cart, request.productId(), request.quantity()
+            );
+
+            return ProductToCartResponse.builder()
+                    .productId(cartItem.getProductId())
+                    .name(product.getName())
+                    .description(product.getDescription())
+                    .price(product.getPrice())
+                    .quantity(cartItem.getQuantity())
+                    .totalPrice(product.getPrice()
+                            .multiply(BigDecimal.valueOf(cartItem.getQuantity())))
+                    .build();
+
+        } catch (Exception ex) {
+            inventoryClient.releaseStock(request.productId(), request.quantity());
+            throw ex;
+        }
+    }
+
+    @Override
+    @Transactional
+    public ProductToWishlistResponse addProductToWishlist(final ProductToWishlistRequest request, final UUID userId) {
+        Product product = findByProductId(request.productId());
+        Wishlist wishlist = wishlistService.getOrCreateWishlist(userId);
+        WishlistItem wishlistItem = wishlistService.addWishlistItem(wishlist, product);
+        return ProductToWishlistResponse.builder()
+                .productId(wishlistItem.getProductId())
+                .name(product.getName())
+                .description(product.getDescription())
+                .price(product.getPrice())
                 .build();
     }
 

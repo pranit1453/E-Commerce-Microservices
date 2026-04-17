@@ -21,4 +21,5 @@ public interface ProductRepository extends JpaRepository<Product, UUID>, JpaSpec
     Set<String> findExistingNames(Set<String> names);
 
     Optional<Product> findByProductId(UUID productId);
+
 }

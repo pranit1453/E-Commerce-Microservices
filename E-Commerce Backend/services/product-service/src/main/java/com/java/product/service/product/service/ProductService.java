@@ -23,4 +23,10 @@ public interface ProductService {
     ProductResponse fetchProductById(@NotNull UUID id);
 
     PageResponse<ProductResponse> fetchProductsInPage(int page, int size, String keyword, ProductSortField sortBy, String sortDirection);
+
+    Boolean checkForProductExistence(@NotNull UUID id);
+
+    ProductToCartResponse addProductToCart(@Valid ProductToCartRequest request, UUID userId);
+
+    ProductToWishlistResponse addProductToWishlist(@Valid ProductToWishlistRequest request, UUID userId);
 }
