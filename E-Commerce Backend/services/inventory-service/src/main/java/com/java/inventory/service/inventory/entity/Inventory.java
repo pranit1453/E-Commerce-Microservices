@@ -12,7 +12,7 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "inventories",
+        name = "inventories", schema = "inventory_schema",
         uniqueConstraints = {
                 @UniqueConstraint(name = "uk_inventory_product", columnNames = "productId")
         },

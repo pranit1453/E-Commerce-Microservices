@@ -9,7 +9,7 @@ import java.util.UUID;
 
 @Entity
 @Table(
-        name = "inventory_transactions",
+        name = "inventory_transactions", schema = "inventory_schema",
         indexes = {
                 @Index(name = "idx_tx_inventory", columnList = "inventory_id"),
                 @Index(name = "idx_tx_order", columnList = "orderId"),

@@ -1,8 +1,9 @@
 package com.java.inventory.service.inventory.controller;
 
-import com.java.inventory.service.inventory.dto.CreateInventoryRequest;
-import com.java.inventory.service.inventory.dto.CreateInventoryResponse;
+import com.java.inventory.service.inventory.dto.*;
+import com.java.inventory.service.inventory.enums.InventorySortField;
 import com.java.inventory.service.inventory.service.InventoryService;
+import com.java.inventory.service.wrapper.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
@@ -55,4 +56,46 @@ public class InventoryController {
         inventoryService.releaseStock(id, quantity);
         return ResponseEntity.status(HttpStatus.OK).build();
     }
+
+    @PutMapping("/update/{id}")
+    public ResponseEntity<UpdateInventoryResponse> updateInventory(
+            @PathVariable final @NotNull UUID id,
+            @RequestBody final @Valid UpdateInventoryRequest request) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(inventoryService.updateInventory(id, request));
+    }
+
+    @PatchMapping("/patch/{id}")
+    public ResponseEntity<UpdateInventoryResponse> patchInventory(
+            @PathVariable final @NotNull UUID id,
+            @RequestBody final @Valid UpdateInventoryRequest request
+    ) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(inventoryService.patchInventory(id, request));
+    }
+
+    @DeleteMapping("/remove/{id}")
+    public ResponseEntity<String> deleteInventory(@PathVariable final @NotNull UUID id) {
+        inventoryService.deleteInventory(id);
+        return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                .body("Inventory with id: " + id + " has been deleted.");
+    }
+
+    @GetMapping("/fetch/{id}")
+    public ResponseEntity<InventoryResponse> fetchInventoryById(@PathVariable final @NotNull UUID id) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(inventoryService.fetchInventoryById(id));
+    }
+
+    public ResponseEntity<PageResponse<InventoryResponse>> fetchInventoryInPage(
+            @RequestParam(required = false, defaultValue = "0") int page,
+            @RequestParam(required = false, defaultValue = "5") int size,
+            @RequestParam(required = false) Integer qty,
+            @RequestParam(required = false, defaultValue = "INVENTORY_ID") InventorySortField sortBy,
+            @RequestParam(required = false, defaultValue = "ASC") String sortDirection
+    ) {
+        return ResponseEntity.status(HttpStatus.OK)
+                .body(inventoryService.fetchAllInventoryInPage(page, size, qty, sortBy, sortDirection));
+    }
+
 }

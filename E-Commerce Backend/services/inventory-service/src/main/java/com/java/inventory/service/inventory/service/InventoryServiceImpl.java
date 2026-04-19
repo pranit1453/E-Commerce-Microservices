@@ -2,16 +2,24 @@ package com.java.inventory.service.inventory.service;
 
 import com.java.inventory.service.client.ProductClient;
 import com.java.inventory.service.exception.custom.ResourceNotFoundException;
-import com.java.inventory.service.inventory.dto.CreateInventoryRequest;
-import com.java.inventory.service.inventory.dto.CreateInventoryResponse;
+import com.java.inventory.service.inventory.dto.*;
 import com.java.inventory.service.inventory.entity.Inventory;
+import com.java.inventory.service.inventory.enums.InventorySortField;
+import com.java.inventory.service.inventory.mapper.InventoryMapper;
 import com.java.inventory.service.inventory.repository.InventoryRepository;
-import com.java.inventory.service.mapper.InventoryMapper;
+import com.java.inventory.service.inventory.specification.InventorySpecification;
+import com.java.inventory.service.wrapper.PageResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -63,8 +71,104 @@ public class InventoryServiceImpl implements InventoryService {
         inventory.release(quantity);
     }
 
+    @Override
+    @Transactional
+    public UpdateInventoryResponse updateInventory(final UUID id, final UpdateInventoryRequest request) {
+        Inventory inventory = findByInventoryId(id);
+
+        inventory.setTotalQuantity(
+                Optional.ofNullable(request.totalQuantity()).orElse(inventory.getTotalQuantity()));
+        inventory.setReservedQuantity(
+                Optional.ofNullable(request.reservedQuantity()).orElse(inventory.getReservedQuantity()));
+
+        return UpdateInventoryResponse.builder()
+                .inventoryId(inventory.getInventoryId())
+                .productId(inventory.getProductId())
+                .totalQuantity(inventory.getTotalQuantity())
+                .reservedQuantity(inventory.getReservedQuantity())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public UpdateInventoryResponse patchInventory(final UUID id, final UpdateInventoryRequest request) {
+        Inventory inventory = findByInventoryId(id);
+        inventoryMapper.patchInventory(request, inventory);
+        Inventory savedInventory = inventoryRepository.save(inventory);
+        return UpdateInventoryResponse.builder()
+                .inventoryId(savedInventory.getInventoryId())
+                .productId(savedInventory.getProductId())
+                .totalQuantity(savedInventory.getTotalQuantity())
+                .reservedQuantity(savedInventory.getReservedQuantity())
+                .build();
+    }
+
+    @Override
+    @Transactional
+    public void deleteInventory(final UUID id) {
+        Inventory inventory = findByInventoryId(id);
+        inventoryRepository.deleteById(inventory.getInventoryId());
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public InventoryResponse fetchInventoryById(final UUID id) {
+        Inventory inventory = inventoryRepository.findInventoryById(id)
+                .orElseThrow(() ->
+                        new ResourceNotFoundException("Inventory with id " + id + " not found"));
+        return InventoryResponse.builder()
+                .inventoryId(inventory.getInventoryId())
+                .productId(inventory.getProductId())
+                .totalQuantity(inventory.getTotalQuantity())
+                .reservedQuantity(inventory.getReservedQuantity())
+                .availableQuantity((inventory.getAvailableQuantity()))
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PageResponse<InventoryResponse> fetchAllInventoryInPage(
+            int page,
+            int size,
+            Integer qty,
+            InventorySortField sortBy,
+            String sortDirection) {
+
+        Sort sort = sortDirection.equalsIgnoreCase("ASC")
+                ? Sort.by(Sort.Direction.ASC, sortBy.getField())
+                : Sort.by(Sort.Direction.DESC, sortBy.getField());
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<Inventory> specification = InventorySpecification.hasSearch(qty);
+        Page<Inventory> pages = inventoryRepository.findAll(specification, pageable);
+        List<InventoryResponse> content = pages.getContent()
+                .stream()
+                .map(mapper -> {
+                    return InventoryResponse.builder()
+                            .inventoryId(mapper.getInventoryId())
+                            .productId(mapper.getProductId())
+                            .totalQuantity(mapper.getTotalQuantity())
+                            .reservedQuantity(mapper.getReservedQuantity())
+                            .availableQuantity(mapper.getAvailableQuantity())
+                            .build();
+                }).toList();
+        return PageResponse.<InventoryResponse>builder()
+                .content(content)
+                .page(pages.getNumber())
+                .size(pages.getSize())
+                .totalElements(pages.getTotalElements())
+                .totalPages(pages.getTotalPages())
+                .last(pages.isLast())
+                .build();
+    }
+
     private Inventory findByProductId(final UUID productId) {
         return inventoryRepository.findByProductId(productId)
                 .orElseThrow(() -> new ResourceNotFoundException("Product with id " + productId + " not found in Inventory"));
+    }
+
+    private Inventory findByInventoryId(UUID inventoryId) {
+        return inventoryRepository.findByInventoryId(inventoryId)
+                .orElseThrow(() -> new ResourceNotFoundException("Inventory with id " + inventoryId + " not found"));
     }
 }
