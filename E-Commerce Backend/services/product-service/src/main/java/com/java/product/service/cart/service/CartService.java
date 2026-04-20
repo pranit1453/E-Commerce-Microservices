@@ -1,7 +1,9 @@
 package com.java.product.service.cart.service;
 
+import com.java.product.service.cart.dto.CartToOrderProductRequest;
 import com.java.product.service.cart.entity.Cart;
 import com.java.product.service.cart.entity.CartItem;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
@@ -13,4 +15,6 @@ public interface CartService {
     CartItem addOrUpdateCartItem(Cart cart, UUID productId, @Min(1) Integer quantity);
 
     void movedFromCartToWishlist(@NotNull UUID productId);
+
+    void checkoutCart(@Valid CartToOrderProductRequest request);
 }

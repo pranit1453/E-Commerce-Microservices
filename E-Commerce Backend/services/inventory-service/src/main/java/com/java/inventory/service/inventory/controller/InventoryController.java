@@ -13,6 +13,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.Map;
 import java.util.UUID;
 
 @RestController
@@ -87,6 +88,7 @@ public class InventoryController {
                 .body(inventoryService.fetchInventoryById(id));
     }
 
+    @GetMapping("/fetch")
     public ResponseEntity<PageResponse<InventoryResponse>> fetchInventoryInPage(
             @RequestParam(required = false, defaultValue = "0") int page,
             @RequestParam(required = false, defaultValue = "5") int size,
@@ -98,4 +100,26 @@ public class InventoryController {
                 .body(inventoryService.fetchAllInventoryInPage(page, size, qty, sortBy, sortDirection));
     }
 
+    @PostMapping("/check")
+    public ResponseEntity<Map<UUID, Boolean>> checkStockBatch(
+            @RequestBody Map<UUID, Integer> request
+    ) {
+        return ResponseEntity.ok(inventoryService.checkStock(request));
+    }
+
+    @PostMapping("/reserve")
+    public ResponseEntity<Void> reserveStockBatch(
+            @RequestBody Map<UUID, Integer> request
+    ) {
+        inventoryService.reserveStockBatch(request);
+        return ResponseEntity.ok().build();
+    }
+
+    @PostMapping("/release")
+    public ResponseEntity<Void> releaseStockBatch(
+            @RequestBody Map<UUID, Integer> request
+    ) {
+        inventoryService.releaseStockBatch(request);
+        return ResponseEntity.ok().build();
+    }
 }

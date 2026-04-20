@@ -6,6 +6,7 @@ import com.java.product.service.wrapper.PageResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -29,4 +30,6 @@ public interface ProductService {
     ProductToCartResponse addProductToCart(@Valid ProductToCartRequest request, UUID userId);
 
     ProductToWishlistResponse addProductToWishlist(@Valid ProductToWishlistRequest request, UUID userId);
+
+    List<ProductResponse> getProductsByIds(@Valid List<UUID> productIds);
 }

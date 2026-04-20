@@ -7,6 +7,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 
+import java.util.Map;
 import java.util.UUID;
 
 public interface InventoryService {
@@ -27,4 +28,10 @@ public interface InventoryService {
     InventoryResponse fetchInventoryById(@NotNull UUID id);
 
     PageResponse<InventoryResponse> fetchAllInventoryInPage(int page, int size, Integer qty, InventorySortField sortBy, String sortDirection);
+
+    Map<UUID, Boolean> checkStock(Map<UUID, Integer> request);
+
+    void reserveStockBatch(Map<UUID, Integer> request);
+
+    void releaseStockBatch(Map<UUID, Integer> request);
 }

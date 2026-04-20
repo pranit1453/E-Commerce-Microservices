@@ -232,6 +232,19 @@ public class ProductServiceImpl implements ProductService {
                 .build();
     }
 
+    @Override
+    @Transactional
+    public List<ProductResponse> getProductsByIds(final List<UUID> productIds) {
+        List<Product> products = productRepository.findAllById(productIds);
+        return products.stream()
+                .map(product -> ProductResponse.builder()
+                        .productId(product.getProductId())
+                        .name(product.getName())
+                        .price(product.getPrice())
+                        .build())
+                .toList();
+    }
+
     private Product findByProductId(final UUID id) {
         return productRepository.findByProductId(id)
                 .orElseThrow(() ->

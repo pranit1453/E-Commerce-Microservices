@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
@@ -95,5 +96,10 @@ public class ProductController {
         System.out.println(userId);
         return ResponseEntity.status(HttpStatus.OK)
                 .body(productService.addProductToWishlist(request, userId));
+    }
+
+    @PostMapping("/batch")
+    public List<ProductResponse> getProductsByIds(@RequestBody final @Valid List<UUID> productIds) {
+        return productService.getProductsByIds(productIds);
     }
 }

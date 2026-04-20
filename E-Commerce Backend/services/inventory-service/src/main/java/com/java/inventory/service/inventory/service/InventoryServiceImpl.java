@@ -19,9 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -160,6 +158,36 @@ public class InventoryServiceImpl implements InventoryService {
                 .totalPages(pages.getTotalPages())
                 .last(pages.isLast())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public Map<UUID, Boolean> checkStock(Map<UUID, Integer> request) {
+        Map<UUID, Boolean> result = new HashMap<>();
+        for (Map.Entry<UUID, Integer> entry : request.entrySet()) {
+            Inventory inventory = findByProductId(entry.getKey());
+            result.put(entry.getKey(), inventory.getAvailableQuantity() >= inventory.getReservedQuantity());
+        }
+        return result;
+    }
+
+    @Override
+    @Transactional
+    public void reserveStockBatch(Map<UUID, Integer> request) {
+
+        for (Map.Entry<UUID, Integer> entry : request.entrySet()) {
+            Inventory inventory = findByProductId(entry.getKey());
+            inventory.reserve(entry.getValue());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void releaseStockBatch(Map<UUID, Integer> request) {
+        for (Map.Entry<UUID, Integer> entry : request.entrySet()) {
+            Inventory inventory = findByProductId(entry.getKey());
+            inventory.release(entry.getValue());
+        }
     }
 
     private Inventory findByProductId(final UUID productId) {
