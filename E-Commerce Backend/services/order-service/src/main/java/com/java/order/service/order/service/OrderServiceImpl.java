@@ -9,6 +9,7 @@ import com.java.order.service.order.enums.OrderStatus;
 import com.java.order.service.order.repository.OrderItemRepository;
 import com.java.order.service.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
@@ -29,6 +30,7 @@ public class OrderServiceImpl implements OrderService {
     private final OrderItemRepository orderItemRepository;
     private final ProductClient productClient;
     private final InventoryClient inventoryClient;
+    private final StreamBridge streamBridge;
 
     @Override
     @Transactional
@@ -99,6 +101,7 @@ public class OrderServiceImpl implements OrderService {
             order.setTotalPrice(grandTotal);
             orderRepository.save(order);
 
+
             List<OrderItemResponse> response = orderItems.stream()
                     .map(item -> {
                         ProductResponse product = productMap.get(item.getProductId());
@@ -112,6 +115,20 @@ public class OrderServiceImpl implements OrderService {
                                 .totalPrice(item.getPrice().multiply(BigDecimal.valueOf(item.getQuantity())))
                                 .build();
                     }).toList();
+            List<String> productName = orderItems.stream()
+                    .map(item -> {
+                        ProductResponse product = productMap.get(item.getProductId());
+                        return product.name();
+                    })
+                    .toList();
+            OrderDetails details = OrderDetails.builder()
+                    .userId(order.getUserId())
+                    .orderId(order.getOrderId())
+                    .productName(productName)
+                    .grandTotal(grandTotal)
+                    .build();
+
+            notifyToUserOrderCreated(details);
 
             return OrderResponse.builder()
                     .orderId(order.getOrderId())
@@ -125,5 +142,9 @@ public class OrderServiceImpl implements OrderService {
             inventoryClient.releaseStock(stockRequest);
             throw ex;
         }
+    }
+
+    private void notifyToUserOrderCreated(final OrderDetails details) {
+        streamBridge.send("orderCreatedEvent-out-0", details);
     }
 }

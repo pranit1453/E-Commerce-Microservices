@@ -1,0 +1,16 @@
+package com.java.notification.service.dto;
+
+import lombok.Builder;
+
+import java.math.BigDecimal;
+import java.util.List;
+import java.util.UUID;
+
+@Builder
+public record OrderDetails(
+        UUID userId,
+        UUID orderId,
+        List<String> productName,
+        BigDecimal grandTotal
+) {
+}

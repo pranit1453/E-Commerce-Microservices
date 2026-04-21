@@ -2,6 +2,7 @@ package com.java.product.service.cart.service;
 
 import com.java.product.service.cart.client.OrderClient;
 import com.java.product.service.cart.dto.CartToOrderProductRequest;
+import com.java.product.service.cart.dto.OrderCreationResponse;
 import com.java.product.service.cart.dto.OrderRequest;
 import com.java.product.service.cart.dto.OrderRequestItem;
 import com.java.product.service.cart.entity.Cart;
@@ -79,7 +80,7 @@ public class CartServiceImpl implements CartService {
 
     @Override
     @Transactional
-    public void checkoutCart(final CartToOrderProductRequest request) {
+    public OrderCreationResponse checkoutCart(final CartToOrderProductRequest request) {
         UUID userId = request.userId();
         UUID cartId = request.cartId();
 
@@ -110,6 +111,10 @@ public class CartServiceImpl implements CartService {
         // clearing cart after successful order
         cart.getItems().clear();
         cartRepository.save(cart);
+
+        return OrderCreationResponse.builder()
+                .message("Order Created Successfully")
+                .build();
     }
 
 

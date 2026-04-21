@@ -1,6 +1,7 @@
 package com.java.product.service.cart.service;
 
 import com.java.product.service.cart.dto.CartToOrderProductRequest;
+import com.java.product.service.cart.dto.OrderCreationResponse;
 import com.java.product.service.cart.entity.Cart;
 import com.java.product.service.cart.entity.CartItem;
 import jakarta.validation.Valid;
@@ -16,5 +17,5 @@ public interface CartService {
 
     void movedFromCartToWishlist(@NotNull UUID productId);
 
-    void checkoutCart(@Valid CartToOrderProductRequest request);
+    OrderCreationResponse checkoutCart(@Valid CartToOrderProductRequest request);
 }

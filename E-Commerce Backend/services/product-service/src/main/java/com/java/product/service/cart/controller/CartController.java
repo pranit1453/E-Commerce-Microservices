@@ -1,6 +1,7 @@
 package com.java.product.service.cart.controller;
 
 import com.java.product.service.cart.dto.CartToOrderProductRequest;
+import com.java.product.service.cart.dto.OrderCreationResponse;
 import com.java.product.service.cart.service.CartService;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
@@ -28,9 +29,9 @@ public class CartController {
     }
 
     @PostMapping("/checkout")
-    public ResponseEntity<String> checkoutCart(@RequestBody @Valid CartToOrderProductRequest request) {
-        cartService.checkoutCart(request);
+    public ResponseEntity<OrderCreationResponse> checkoutCart(@RequestBody @Valid CartToOrderProductRequest request) {
+
         return ResponseEntity.status(HttpStatus.OK)
-                .body("Order request sent to Order Service");
+                .body(cartService.checkoutCart(request));
     }
 }

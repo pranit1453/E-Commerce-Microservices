@@ -25,6 +25,9 @@
       <module name="inventory-service" options="-parameters" />
       <module name="inventory-service.main" options="-parameters" />
       <module name="inventory-service.test" options="-parameters" />
+      <module name="notification-service" options="-parameters" />
+      <module name="notification-service.main" options="-parameters" />
+      <module name="notification-service.test" options="-parameters" />
       <module name="order-service" options="-parameters" />
       <module name="order-service.main" options="-parameters" />
       <module name="order-service.test" options="-parameters" />
