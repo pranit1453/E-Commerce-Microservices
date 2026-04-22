@@ -32,4 +32,6 @@ public interface ProductService {
     ProductToWishlistResponse addProductToWishlist(@Valid ProductToWishlistRequest request, UUID userId);
 
     List<ProductResponse> getProductsByIds(@Valid List<UUID> productIds);
+
+    CreateAndPlaceOrderResponse createAndBuyOrder(@NotNull UUID productId, int quantity);
 }

@@ -5,10 +5,11 @@ import com.java.product.service.cart.entity.CartItem;
 import com.java.product.service.cart.service.CartService;
 import com.java.product.service.category.entity.Category;
 import com.java.product.service.category.repository.CategoryRepository;
+import com.java.product.service.client.InventoryClient;
+import com.java.product.service.client.OrderClient;
 import com.java.product.service.exception.custom.DuplicateResourceFoundException;
 import com.java.product.service.exception.custom.InsufficientStockException;
 import com.java.product.service.exception.custom.ResourceNotFoundException;
-import com.java.product.service.product.client.InventoryClient;
 import com.java.product.service.product.dto.*;
 import com.java.product.service.product.entity.Product;
 import com.java.product.service.product.enums.ProductSortField;
@@ -45,6 +46,7 @@ public class ProductServiceImpl implements ProductService {
     private final InventoryClient inventoryClient;
     private final CartService cartService;
     private final WishlistService wishlistService;
+    private final OrderClient orderClient;
 
     @Override
     @Transactional
@@ -244,6 +246,41 @@ public class ProductServiceImpl implements ProductService {
                         .build())
                 .toList();
     }
+
+    @Override
+    public CreateAndPlaceOrderResponse createAndBuyOrder(UUID productId, int quantity) {
+
+        if (!Boolean.TRUE.equals(inventoryClient.isStockAvailable(productId, quantity))) {
+            throw new InsufficientStockException("Stock is not available");
+        }
+        try {
+            inventoryClient.reserveStock(productId, quantity);
+        } catch (FeignException.BadRequest ex) {
+            throw new InsufficientStockException("Stock just went out. Try again.");
+        }
+        try {
+            Product product = findByProductId(productId);
+            ProductDetails details = ProductDetails.builder()
+                    .productId(product.getProductId())
+                    .name(product.getName())
+                    .description(product.getDescription())
+                    .price(product.getPrice())
+                    .quantity(quantity)
+                    .build();
+
+            CreateOrderResponse response = orderClient.createOrderAndProceedToBuy(details);
+
+            return CreateAndPlaceOrderResponse.builder()
+                    .orderId(response.orderId())
+                    .message(response.message())
+                    .build();
+        } catch (Exception ex) {
+            inventoryClient.releaseStock(productId, quantity);
+            throw ex;
+        }
+
+    }
+
 
     private Product findByProductId(final UUID id) {
         return productRepository.findByProductId(id)

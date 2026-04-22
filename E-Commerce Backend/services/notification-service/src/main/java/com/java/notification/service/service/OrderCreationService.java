@@ -1,7 +1,6 @@
 package com.java.notification.service.service;
 
 import com.java.notification.service.dto.OrderDetails;
-import com.java.notification.service.dto.OrderResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.stereotype.Service;
@@ -16,14 +15,9 @@ public class OrderCreationService {
     private final EmailService emailService;
 
     @Bean
-    public Function<OrderDetails, OrderResponse> notifyUserAsOrderIsCreated() {
-        return (orderDetails -> {
-            // logic to send email to user
-            UUID orderId = sendNotificationToUser(orderDetails);
-            return OrderResponse.builder()
-                    .orderId(orderId)
-                    .build();
-        });
+    public Function<OrderDetails, UUID> notifyUserAsOrderIsCreated() {
+        // logic to send email to user
+        return (this::sendNotificationToUser);
     }
 
     private UUID sendNotificationToUser(final OrderDetails orderDetails) {

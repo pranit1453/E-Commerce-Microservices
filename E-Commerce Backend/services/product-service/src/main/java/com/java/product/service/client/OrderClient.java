@@ -1,6 +1,8 @@
-package com.java.product.service.cart.client;
+package com.java.product.service.client;
 
 import com.java.product.service.cart.dto.OrderRequest;
+import com.java.product.service.product.dto.CreateOrderResponse;
+import com.java.product.service.product.dto.ProductDetails;
 import jakarta.validation.Valid;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.validation.annotation.Validated;
@@ -13,4 +15,7 @@ public interface OrderClient {
 
     @PostMapping("/create")
     void createOrder(@RequestBody final @Valid OrderRequest request);
+
+    @PostMapping("/create-order")
+    CreateOrderResponse createOrderAndProceedToBuy(@RequestBody ProductDetails details);
 }

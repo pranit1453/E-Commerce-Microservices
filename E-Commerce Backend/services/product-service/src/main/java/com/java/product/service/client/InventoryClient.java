@@ -1,4 +1,4 @@
-package com.java.product.service.product.client;
+package com.java.product.service.client;
 
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.openfeign.FeignClient;

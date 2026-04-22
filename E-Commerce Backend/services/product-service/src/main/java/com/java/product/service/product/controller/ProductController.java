@@ -102,4 +102,13 @@ public class ProductController {
     public List<ProductResponse> getProductsByIds(@RequestBody final @Valid List<UUID> productIds) {
         return productService.getProductsByIds(productIds);
     }
+
+    @PostMapping("/purchase/{productId}")
+    public ResponseEntity<CreateAndPlaceOrderResponse> createAndBuyOrder(
+            @PathVariable final @NotNull UUID productId,
+            @RequestParam int quantity) {
+
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(productService.createAndBuyOrder(productId, quantity));
+    }
 }

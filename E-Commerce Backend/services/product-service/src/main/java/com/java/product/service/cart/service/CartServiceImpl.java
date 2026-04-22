@@ -1,6 +1,5 @@
 package com.java.product.service.cart.service;
 
-import com.java.product.service.cart.client.OrderClient;
 import com.java.product.service.cart.dto.CartToOrderProductRequest;
 import com.java.product.service.cart.dto.OrderCreationResponse;
 import com.java.product.service.cart.dto.OrderRequest;
@@ -9,6 +8,7 @@ import com.java.product.service.cart.entity.Cart;
 import com.java.product.service.cart.entity.CartItem;
 import com.java.product.service.cart.repository.CartItemRepository;
 import com.java.product.service.cart.repository.CartRepository;
+import com.java.product.service.client.OrderClient;
 import com.java.product.service.exception.custom.ResourceNotFoundException;
 import com.java.product.service.wishlist.entity.Wishlist;
 import com.java.product.service.wishlist.service.WishlistService;

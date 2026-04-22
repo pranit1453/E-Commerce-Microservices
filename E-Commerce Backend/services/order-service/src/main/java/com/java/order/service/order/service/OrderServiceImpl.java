@@ -6,12 +6,13 @@ import com.java.order.service.order.dto.*;
 import com.java.order.service.order.entity.Order;
 import com.java.order.service.order.entity.OrderItem;
 import com.java.order.service.order.enums.OrderStatus;
-import com.java.order.service.order.repository.OrderItemRepository;
 import com.java.order.service.order.repository.OrderRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.validation.annotation.Validated;
 
 import java.math.BigDecimal;
@@ -27,7 +28,6 @@ import java.util.stream.Collectors;
 public class OrderServiceImpl implements OrderService {
 
     private final OrderRepository orderRepository;
-    private final OrderItemRepository orderItemRepository;
     private final ProductClient productClient;
     private final InventoryClient inventoryClient;
     private final StreamBridge streamBridge;
@@ -43,12 +43,12 @@ public class OrderServiceImpl implements OrderService {
         // Fetch Products
         List<ProductResponse> products = productClient.getProductById(productIds);
 
-        /*
-            Map<UUID, ProductResponse> map = new HashMap<>();
-            for (ProductResponse p : products) {
-                map.put(p.productId(), p);
-            }
-         */
+//        /*
+//            Map<UUID, ProductResponse> map = new HashMap<>();
+//            for (ProductResponse p : products) {
+//                map.put(p.productId(), p);
+//            }
+//         */
         Map<UUID, ProductResponse> productMap = products.stream()
                 .collect(Collectors.toMap(ProductResponse::productId, p -> p));
 
@@ -128,7 +128,14 @@ public class OrderServiceImpl implements OrderService {
                     .grandTotal(grandTotal)
                     .build();
 
-            notifyToUserOrderCreated(details);
+            TransactionSynchronizationManager.registerSynchronization(
+                    new TransactionSynchronization() {
+                        @Override
+                        public void afterCommit() {
+                            notifyToUserOrderCreated(details);
+                        }
+                    }
+            );
 
             return OrderResponse.builder()
                     .orderId(order.getOrderId())
@@ -142,6 +149,58 @@ public class OrderServiceImpl implements OrderService {
             inventoryClient.releaseStock(stockRequest);
             throw ex;
         }
+    }
+
+    @Override
+    @Transactional
+    public CreateOrderResponse createOrderAndProceedToBuy(final UUID userId, final ProductDetails details) {
+        Order order = Order.builder()
+                .userId(userId)
+                .orderStatus(OrderStatus.CREATED)
+                .build();
+
+        BigDecimal price = details.price();
+        BigDecimal totalPrice = price.multiply(BigDecimal.valueOf(details.quantity()));
+
+        List<OrderItem> items = new ArrayList<>();
+
+        OrderItem item = OrderItem.builder()
+                .productId(details.productId())
+                .name(details.name())
+                .quantity(details.quantity())
+                .price(price)
+                .order(order)
+                .build();
+
+        items.add(item);
+
+        order.setItems(items);
+        order.setTotalPrice(totalPrice);
+
+        orderRepository.save(order);
+        List<String> name = List.of(item.getName());
+
+        OrderDetails orderDetails = OrderDetails.builder()
+                .userId(userId)
+                .orderId(item.getOrder().getOrderId())
+                .productName(name)
+                .grandTotal(totalPrice)
+                .build();
+
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        notifyToUserOrderCreated(orderDetails);
+                    }
+                }
+        );
+
+
+        return CreateOrderResponse.builder()
+                .orderId(item.getOrder().getOrderId())
+                .message("Order Created Successfully and Proceed to buy")
+                .build();
     }
 
     private void notifyToUserOrderCreated(final OrderDetails details) {
