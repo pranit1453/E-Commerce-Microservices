@@ -1,67 +1,81 @@
 package com.java.payment.service.service;
 
+
+import com.java.payment.service.dto.PaymentGatewayData;
+import com.java.payment.service.dto.PaymentGatewayResponse;
+import com.java.payment.service.dto.PaymentInitiateRequest;
 import com.java.payment.service.entity.Payment;
+import com.java.payment.service.enums.GatewayStatus;
 import com.java.payment.service.enums.PaymentStatus;
+import com.java.payment.service.factory.PaymentGatewayFactory;
 import com.java.payment.service.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.math.BigDecimal;
+import java.util.Map;
 import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
 public class PaymentService {
     private final PaymentRepository paymentRepository;
+    private final PaymentGatewayFactory paymentGatewayFactory;
 
-    // create payment
-    public Payment createPayment(UUID orderId, BigDecimal amount) {
-        Payment payment = Payment.builder()
-                .orderId(orderId)
-                .paymentStatus(PaymentStatus.CREATED)
-                .amount(amount)
-                .currency("INR")
+    public Map<String, String> initiatePaymentWithGateway(PaymentInitiateRequest request) {
+        Payment payment = paymentRepository.findByPaymentId(request.paymentId())
+                .orElseThrow(() ->
+                        new RuntimeException("Payment Not Founds"));
+
+        PaymentGatewayData paymentData = PaymentGatewayData.builder()
+                .paymentId(payment.getPaymentId())
+                .orderId(payment.getOrderId())
+                .amount(payment.getAmount())
+                .service(request.service())
+                .details(request.detail())
                 .build();
-        return paymentRepository.save(payment);
-    }
-
-    // initiate payment
-    public Payment initiatePayment(UUID paymentId) {
-        Payment payment = paymentRepository.findByPaymentId(paymentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Payment not found!"));
-
-        payment.setGatewayOrderId("order_" + UUID.randomUUID());
         payment.setPaymentStatus(PaymentStatus.INITIATED);
-        return paymentRepository.save(payment);
+        payment.getPaymentGateway().setStatus(GatewayStatus.INITIATED);
+        PaymentGatewayResponse response =
+                paymentGatewayFactory.getGatewayFactory(request.gateway())
+                        .getPaymentService(request.service())
+                        .initiate(paymentData);
+        // check response null gateway status failed, payment status pending
+        payment.getPaymentGateway().setGatewayOrderId(response.gatewayOrderId());
+        payment.getPaymentGateway().setGatewayPaymentId(response.gatewayPaymentId());
+        payment.getPaymentGateway().setGatewaySignature(response.gatewaySignature());
+        payment.getPaymentGateway().setStatus(GatewayStatus.VERIFIED);
+
+        paymentRepository.save(payment);
+
+        return Map.of(
+                "gatewayOrderId", response.gatewayOrderId(),
+                "gatewayPaymentId", response.gatewayPaymentId(),
+                "gatewaySignature", response.gatewaySignature()
+        );
     }
 
-    // simulate payment
-    public Payment simulatePayment(UUID paymentId) {
+    public String verifyPayment(UUID paymentId, String signature) {
         Payment payment = paymentRepository.findByPaymentId(paymentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Payment not found!"));
+                .orElseThrow(() -> new RuntimeException("Payment not found"));
 
-        payment.setGatewayPaymentId("pay_" + UUID.randomUUID());
-
-        // signature
-        String raw = payment.getOrderId() + "_" + payment.getPaymentId();
-        payment.setGatewaySignature(raw);
-
-        return paymentRepository.save(payment);
-    }
-
-    public Payment verifyPayment(UUID paymentId, String signature) {
-        Payment payment = paymentRepository.findByPaymentId(paymentId)
-                .orElseThrow(() ->
-                        new RuntimeException("Payment not found!"));
-        // decode signature
-        //String expected =
-        if (!payment.getGatewaySignature().equals(signature)) {
-            payment.setPaymentStatus(PaymentStatus.FAILED);
-        } else {
-            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+        boolean isValid = validateSignature(signature, payment.getPaymentGateway().getGatewaySignature());
+        if (!isValid) {
+            payment.getPaymentGateway().setStatus(GatewayStatus.FAILED);
+            paymentRepository.save(payment);
+            return "Payment failed";
         }
-        return paymentRepository.save(payment);
+
+        payment.getPaymentGateway().setStatus(GatewayStatus.VERIFIED);
+        if (payment.getPaymentGateway().getStatus() == GatewayStatus.VERIFIED) {
+            payment.setPaymentStatus(PaymentStatus.SUCCESS);
+            paymentRepository.save(payment);
+        }
+        return "Payment success";
     }
+
+    private boolean validateSignature(String signature, String gatewaySignature) {
+
+        return gatewaySignature.equals(signature);
+    }
+
 }

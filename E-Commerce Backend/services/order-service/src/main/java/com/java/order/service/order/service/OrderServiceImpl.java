@@ -128,11 +128,17 @@ public class OrderServiceImpl implements OrderService {
                     .grandTotal(grandTotal)
                     .build();
 
+            PaymentCreateDetails paymentCreateDetails = PaymentCreateDetails.builder()
+                    .orderId(order.getOrderId())
+                    .amount(grandTotal)
+                    .userId(order.getUserId())
+                    .build();
             TransactionSynchronizationManager.registerSynchronization(
                     new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
-                            notifyToUserOrderCreated(details);
+                            createPayment(paymentCreateDetails);
+                            //notifyToUserOrderCreated(details);
                         }
                     }
             );
@@ -201,6 +207,10 @@ public class OrderServiceImpl implements OrderService {
                 .orderId(item.getOrder().getOrderId())
                 .message("Order Created Successfully and Proceed to buy")
                 .build();
+    }
+
+    private void createPayment(PaymentCreateDetails paymentCreateDetails) {
+        streamBridge.send("orderCreatedEvent-out-0", paymentCreateDetails);
     }
 
     private void notifyToUserOrderCreated(final OrderDetails details) {

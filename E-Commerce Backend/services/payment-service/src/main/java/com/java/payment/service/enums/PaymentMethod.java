@@ -1,6 +1,6 @@
 package com.java.payment.service.enums;
 
-public enum PaymentType {
+public enum PaymentMethod {
     UPI,
     CARD,
     NET_BANKING,

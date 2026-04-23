@@ -1,40 +1,37 @@
 package com.java.payment.service.entity;
 
-import com.java.payment.service.enums.PaymentStatus;
+import com.java.payment.service.enums.GatewayName;
+import com.java.payment.service.enums.GatewayStatus;
+import com.java.payment.service.enums.PaymentMethod;
 import jakarta.persistence.*;
 import lombok.*;
 
-import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table
+@Table(name = "payment_gateway")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Payment {
+public class PaymentGateway {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID paymentId;
+    private UUID gatewayId;
 
-    @Column(nullable = false, unique = true)
-    private UUID orderId;
-
-    private UUID userId;
+    @Column(nullable = false)
+    private GatewayName gatewayName;
 
     @Enumerated(EnumType.STRING)
-    private PaymentStatus paymentStatus;
+    private PaymentMethod paymentMethod;
+    
+    private String gatewayOrderId;
+    private String gatewayPaymentId;
+    private String gatewaySignature;
 
-    private BigDecimal amount;
-
-    private String currency;
-
-    @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name = "gateway_id", referencedColumnName = "gatewayId")
-    private PaymentGateway paymentGateway;
+    private GatewayStatus status;
 
     private Instant createdAt;
     private Instant updatedAt;
@@ -48,4 +45,5 @@ public class Payment {
     public void onUpdate() {
         this.updatedAt = Instant.now();
     }
+
 }

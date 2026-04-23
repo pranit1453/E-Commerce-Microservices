@@ -4,6 +4,7 @@
   <component name="FrameworkDetectionExcludesConfiguration">
     <file type="web" url="file://$PROJECT_DIR$/services/notification-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/order-service" />
+    <file type="web" url="file://$PROJECT_DIR$/services/payment-service" />
     <file type="web" url="file://$PROJECT_DIR$/services/product-service" />
   </component>
   <component name="ProjectRootManager" version="2" languageLevel="JDK_25" default="true" project-jdk-name="25" project-jdk-type="JavaSDK">
