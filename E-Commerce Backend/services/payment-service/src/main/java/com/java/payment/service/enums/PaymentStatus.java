@@ -1,9 +1,0 @@
-package com.java.payment.service.enums;
-
-public enum PaymentStatus {
-    CREATED,
-    INITIATED,
-    PENDING,
-    SUCCESS,
-    FAILED
-}

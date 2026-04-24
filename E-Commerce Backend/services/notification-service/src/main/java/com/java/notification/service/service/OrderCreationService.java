@@ -33,14 +33,17 @@ public class OrderCreationService {
         return """
                 Hello,
                 
-                Your order has been successfully created move towards PAYMENT.
-                
+                Order confirmed! We’ve received your payment and started processing your order.
+                Payment ID: %s
+                User ID: %s
                 Order ID: %s
                 Product Names: %s
                 Total Amount: ₹%s
                 
                 Thank you for shopping with us!
                 """.formatted(
+                orderDetails.paymentId(),
+                orderDetails.userId(),
                 orderDetails.orderId(),
                 String.join(", ", orderDetails.productName()),
                 orderDetails.grandTotal()

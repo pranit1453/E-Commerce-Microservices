@@ -28,7 +28,7 @@ public class CartController {
                 .body("Product with id: " + productId + " has been moved to wishlist");
     }
 
-    @PostMapping("/checkout")
+    @PostMapping("/proceed-to-buy")
     public ResponseEntity<OrderCreationResponse> checkoutCart(@RequestBody @Valid CartToOrderProductRequest request) {
 
         return ResponseEntity.status(HttpStatus.OK)

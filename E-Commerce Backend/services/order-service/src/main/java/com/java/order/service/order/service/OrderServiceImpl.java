@@ -22,6 +22,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+
 @Service
 @RequiredArgsConstructor
 @Validated
@@ -32,6 +33,12 @@ public class OrderServiceImpl implements OrderService {
     private final InventoryClient inventoryClient;
     private final StreamBridge streamBridge;
 
+    /**
+     * Order Creation Process
+     * Extract All Product IDs in List
+     * Fetch All Products from Product service
+     * Map with
+     */
     @Override
     @Transactional
     public OrderResponse createOrder(final OrderRequest request) {
@@ -43,12 +50,6 @@ public class OrderServiceImpl implements OrderService {
         // Fetch Products
         List<ProductResponse> products = productClient.getProductById(productIds);
 
-//        /*
-//            Map<UUID, ProductResponse> map = new HashMap<>();
-//            for (ProductResponse p : products) {
-//                map.put(p.productId(), p);
-//            }
-//         */
         Map<UUID, ProductResponse> productMap = products.stream()
                 .collect(Collectors.toMap(ProductResponse::productId, p -> p));
 
@@ -133,16 +134,15 @@ public class OrderServiceImpl implements OrderService {
                     .amount(grandTotal)
                     .userId(order.getUserId())
                     .build();
+
             TransactionSynchronizationManager.registerSynchronization(
                     new TransactionSynchronization() {
                         @Override
                         public void afterCommit() {
                             createPayment(paymentCreateDetails);
-                            //notifyToUserOrderCreated(details);
                         }
                     }
             );
-
             return OrderResponse.builder()
                     .orderId(order.getOrderId())
                     .userId(order.getUserId())
@@ -186,18 +186,17 @@ public class OrderServiceImpl implements OrderService {
         orderRepository.save(order);
         List<String> name = List.of(item.getName());
 
-        OrderDetails orderDetails = OrderDetails.builder()
-                .userId(userId)
-                .orderId(item.getOrder().getOrderId())
-                .productName(name)
-                .grandTotal(totalPrice)
+        PaymentCreateDetails paymentCreateDetails = PaymentCreateDetails.builder()
+                .orderId(order.getOrderId())
+                .amount(totalPrice)
+                .userId(order.getUserId())
                 .build();
 
         TransactionSynchronizationManager.registerSynchronization(
                 new TransactionSynchronization() {
                     @Override
                     public void afterCommit() {
-                        notifyToUserOrderCreated(orderDetails);
+                        createPayment(paymentCreateDetails);
                     }
                 }
         );
@@ -209,11 +208,34 @@ public class OrderServiceImpl implements OrderService {
                 .build();
     }
 
+    @Transactional(readOnly = true)
+    public void notifyUserAboutOrder(CreateOrderResponseToUpdateStatus response) {
+        Order order = orderRepository
+                .findOrderByOrderIdWithItems(response.orderId())
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        List<String> productNames = order.getItems()
+                .stream()
+                .map(OrderItem::getName)
+                .toList();
+
+        OrderDetails orderDetails = OrderDetails.builder()
+                .userId(response.userId())
+                .orderId(response.orderId())
+                .paymentId(response.paymentId())
+                .productName(productNames)
+                .grandTotal(response.grandTotal())
+                .build();
+
+        notifyToUserOrderCreated(orderDetails);
+    }
+
     private void createPayment(PaymentCreateDetails paymentCreateDetails) {
         streamBridge.send("orderCreatedEvent-out-0", paymentCreateDetails);
+
     }
 
     private void notifyToUserOrderCreated(final OrderDetails details) {
-        streamBridge.send("orderCreatedEvent-out-0", details);
+        streamBridge.send("orderNotificationEvent-out-0", details);
     }
 }

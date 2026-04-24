@@ -22,4 +22,11 @@ public interface OrderRepository extends JpaRepository<Order, UUID> {
                 WHERE o.orderId = :orderId
             """)
     Optional<Order> findOrderByOrderId(@Param("orderId") UUID orderId);
+
+    @Query("""
+              select o from Order o
+              left join fetch o.items
+              where o.orderId = :orderId
+            """)
+    Optional<Order> findOrderByOrderIdWithItems(UUID orderId);
 }
